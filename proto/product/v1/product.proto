@@ -1,0 +1,24 @@
+syntax = "proto3";
+package product.v1;
+
+service ProductService {
+    rpc GetProduct (GetProductRequest) returns (GetProductResponse);
+    rpc GetProductList (GetProductListRequest) returns (stream Product);
+}
+
+
+message Product {
+    int64 id = 1;
+    string name = 2;
+}
+
+message GetProductRequest {
+    int64 id = 1;
+}
+
+message GetProductResponse {
+    Product product = 1;
+}
+
+message GetProductListRequest{
+}
