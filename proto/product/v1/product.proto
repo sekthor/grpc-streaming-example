@@ -4,12 +4,14 @@ package product.v1;
 service ProductService {
     rpc GetProduct (GetProductRequest) returns (GetProductResponse);
     rpc GetProductList (GetProductListRequest) returns (stream Product);
+    rpc FillCart(stream Product) returns (Cart);
 }
 
 
 message Product {
     int64 id = 1;
     string name = 2;
+    float price = 3;
 }
 
 message GetProductRequest {
@@ -21,4 +23,9 @@ message GetProductResponse {
 }
 
 message GetProductListRequest{
+}
+
+message Cart {
+    repeated Product products = 1;
+    float total_price = 2;
 }

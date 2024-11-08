@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"io"
 	"time"
 
 	productv1 "github.com/sekthor/grpc-streaming-example/api/product/v1"
@@ -40,8 +41,9 @@ func (p ProductService) GetProductList(req *productv1.GetProductListRequest, str
 	for _, product := range products {
 
 		prod := productv1.Product{
-			Id:   product.ID,
-			Name: product.Name,
+			Id:    product.ID,
+			Name:  product.Name,
+			Price: product.Price,
 		}
 
 		// silly sleep to observe individual messages from the stream
@@ -52,4 +54,26 @@ func (p ProductService) GetProductList(req *productv1.GetProductListRequest, str
 		}
 	}
 	return nil
+}
+
+func (p ProductService) FillCart(stream productv1.ProductService_FillCartServer) error {
+
+	var cart []*productv1.Product
+	var sum float32 = 0
+
+	for {
+		product, err := stream.Recv()
+		if err == io.EOF {
+			return stream.SendAndClose(&productv1.Cart{
+				Products:   cart,
+				TotalPrice: sum,
+			})
+		}
+		if err != nil {
+			return err
+		}
+
+		cart = append(cart, product)
+		sum += product.Price
+	}
 }

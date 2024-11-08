@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion8
 const (
 	ProductService_GetProduct_FullMethodName     = "/product.v1.ProductService/GetProduct"
 	ProductService_GetProductList_FullMethodName = "/product.v1.ProductService/GetProductList"
+	ProductService_FillCart_FullMethodName       = "/product.v1.ProductService/FillCart"
 )
 
 // ProductServiceClient is the client API for ProductService service.
@@ -29,6 +30,7 @@ const (
 type ProductServiceClient interface {
 	GetProduct(ctx context.Context, in *GetProductRequest, opts ...grpc.CallOption) (*GetProductResponse, error)
 	GetProductList(ctx context.Context, in *GetProductListRequest, opts ...grpc.CallOption) (ProductService_GetProductListClient, error)
+	FillCart(ctx context.Context, opts ...grpc.CallOption) (ProductService_FillCartClient, error)
 }
 
 type productServiceClient struct {
@@ -82,12 +84,48 @@ func (x *productServiceGetProductListClient) Recv() (*Product, error) {
 	return m, nil
 }
 
+func (c *productServiceClient) FillCart(ctx context.Context, opts ...grpc.CallOption) (ProductService_FillCartClient, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &ProductService_ServiceDesc.Streams[1], ProductService_FillCart_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &productServiceFillCartClient{ClientStream: stream}
+	return x, nil
+}
+
+type ProductService_FillCartClient interface {
+	Send(*Product) error
+	CloseAndRecv() (*Cart, error)
+	grpc.ClientStream
+}
+
+type productServiceFillCartClient struct {
+	grpc.ClientStream
+}
+
+func (x *productServiceFillCartClient) Send(m *Product) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *productServiceFillCartClient) CloseAndRecv() (*Cart, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(Cart)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // ProductServiceServer is the server API for ProductService service.
 // All implementations must embed UnimplementedProductServiceServer
 // for forward compatibility
 type ProductServiceServer interface {
 	GetProduct(context.Context, *GetProductRequest) (*GetProductResponse, error)
 	GetProductList(*GetProductListRequest, ProductService_GetProductListServer) error
+	FillCart(ProductService_FillCartServer) error
 	mustEmbedUnimplementedProductServiceServer()
 }
 
@@ -100,6 +138,9 @@ func (UnimplementedProductServiceServer) GetProduct(context.Context, *GetProduct
 }
 func (UnimplementedProductServiceServer) GetProductList(*GetProductListRequest, ProductService_GetProductListServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetProductList not implemented")
+}
+func (UnimplementedProductServiceServer) FillCart(ProductService_FillCartServer) error {
+	return status.Errorf(codes.Unimplemented, "method FillCart not implemented")
 }
 func (UnimplementedProductServiceServer) mustEmbedUnimplementedProductServiceServer() {}
 
@@ -153,6 +194,32 @@ func (x *productServiceGetProductListServer) Send(m *Product) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _ProductService_FillCart_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ProductServiceServer).FillCart(&productServiceFillCartServer{ServerStream: stream})
+}
+
+type ProductService_FillCartServer interface {
+	SendAndClose(*Cart) error
+	Recv() (*Product, error)
+	grpc.ServerStream
+}
+
+type productServiceFillCartServer struct {
+	grpc.ServerStream
+}
+
+func (x *productServiceFillCartServer) SendAndClose(m *Cart) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *productServiceFillCartServer) Recv() (*Product, error) {
+	m := new(Product)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // ProductService_ServiceDesc is the grpc.ServiceDesc for ProductService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -170,6 +237,11 @@ var ProductService_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "GetProductList",
 			Handler:       _ProductService_GetProductList_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "FillCart",
+			Handler:       _ProductService_FillCart_Handler,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "product/v1/product.proto",

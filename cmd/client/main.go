@@ -44,6 +44,7 @@ func main() {
 	// server side streaming
 	// ---------------------
 
+	var products []*productv1.Product
 	stream, err := client.GetProductList(ctx, &productv1.GetProductListRequest{})
 
 	if err != nil {
@@ -58,7 +59,30 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to receive streamed product: %v", err)
 		}
+		products = append(products, product)
 		log.Println(product)
 	}
 
+	// ---------------------
+	// client side streaming
+	// ---------------------
+
+	fillCartStream, err := client.FillCart(ctx)
+	if err != nil {
+		log.Fatalf("could not start fill-cart stream: %v", err)
+	}
+
+	for _, product := range products {
+
+		if err := fillCartStream.Send(product); err != nil {
+			log.Fatalf("could not send product to fill-cart stream: %v", err)
+		}
+	}
+
+	cart, err := fillCartStream.CloseAndRecv()
+	if err != nil {
+		log.Fatalf("could not close fill-cart stream: %v", err)
+	}
+
+	log.Println(cart)
 }
