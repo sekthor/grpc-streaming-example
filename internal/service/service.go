@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	productv1 "github.com/sekthor/grpc-streaming-example/api/product/v1"
 	"google.golang.org/grpc/codes"
@@ -34,6 +35,21 @@ func (p ProductService) GetProduct(ctx context.Context, req *productv1.GetProduc
 	return &response, status.Errorf(codes.NotFound, "No product with id %d", req.Id)
 }
 
-func (p ProductService) GetProductList(*productv1.GetProductListRequest, productv1.ProductService_GetProductListServer) error {
-	panic("unimplemented")
+func (p ProductService) GetProductList(req *productv1.GetProductListRequest, stream productv1.ProductService_GetProductListServer) error {
+
+	for _, product := range products {
+
+		prod := productv1.Product{
+			Id:   product.ID,
+			Name: product.Name,
+		}
+
+		// silly sleep to observe individual messages from the stream
+		time.Sleep(time.Second)
+
+		if err := stream.Send(&prod); err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -27,11 +28,37 @@ func main() {
 
 	client := productv1.NewProductServiceClient(conn)
 
+	// ---------------------
+	// unary rpc
+	// ---------------------
+
 	request := productv1.GetProductRequest{Id: 3}
 	response, err := client.GetProduct(ctx, &request)
 	if err != nil {
 		log.Fatalf("cloud not get product: %v", err)
 	}
 
-	fmt.Println(response.Product)
+	log.Println(response.Product)
+
+	// ---------------------
+	// server side streaming
+	// ---------------------
+
+	stream, err := client.GetProductList(ctx, &productv1.GetProductListRequest{})
+
+	if err != nil {
+		log.Fatalf("could not stream product list from server: %v", err)
+	}
+
+	for {
+		product, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("failed to receive streamed product: %v", err)
+		}
+		log.Println(product)
+	}
+
 }
